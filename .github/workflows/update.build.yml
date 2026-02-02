@@ -1,4 +1,4 @@
-name: Mango Ultimate Engine
+name: Mango Ultimate Build
 on:
   workflow_dispatch:
     inputs:
@@ -6,37 +6,32 @@ on:
         required: true
       package_name:
         required: true
+      web_url:
+        required: false
+        default: 'none'
+      splash_time:
+        required: false
+        default: '3000'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Prepare Android Project
+      - name: Setup Build Environment
         run: |
-          # 1. Folders create karna jo repo mein missing hain
-          mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/mipmap-hdpi
-          mkdir -p app/src/main/assets
+          echo "Building App: ${{ github.event.inputs.app_name }}"
+          echo "Package: ${{ github.event.inputs.package_name }}"
+          echo "URL: ${{ github.event.inputs.web_url }}"
           
-          # 2. Icon aur Splash ko sahi jagah "Zabardasti" (Force) bhejni
-          cp -f icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png || true
-          cp -f splash.png app/src/main/assets/splash.png || true
-          cp -f index.html app/src/main/assets/index.html || true
+          # Yahan aapki APK building commands aayengi
+          mkdir -p output
+          echo "Fake APK for ${{ github.event.inputs.app_name }}" > output/app-release.apk
 
-          # 3. Name update karna (strings.xml create karna)
-          echo "<?xml version='1.0' encoding='utf-8'?><resources><string name='app_name'>${{ github.event.inputs.app_name }}</string></resources>" > app/src/main/res/values/strings.xml
-
-      - name: Compile Real APK
-        run: |
-          # Yeh step asli compilation simulate karega
-          mkdir -p build_output
-          # Note: Real build ke liye humein Gradle wrapper chahiye hota hai
-          echo "Building ${{ github.event.inputs.app_name }}..." > build_output/app-release.apk
-
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}
-          path: build_output/
+          name: ${{ github.event.inputs.app_name }}-Package
+          path: output/
