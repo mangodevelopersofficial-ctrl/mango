@@ -4,13 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       app_name:
+        description: 'App Display Name'
         required: true
       package_name:
+        description: 'App Package ID (com.mango.app)'
         required: true
       web_url:
+        description: 'URL to load in WebView'
         required: false
         default: 'none'
       splash_time:
+        description: 'Splash duration in ms'
         required: false
         default: '3000'
 
@@ -18,7 +22,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -26,25 +30,38 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
-      - name: Sync Assets
+      - name: Sync Dashboard Assets
         run: |
+          # Folders check karna
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/res/mipmap-xxxhdpi
-          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
-          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           
+          # Dashboard ki files ko sahi jagah move karna
+          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html || echo "Using existing assets"
+          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || echo "Using existing icon"
+          
+          # MainActivity mein dynamic URL dalna
           if [ -f "app/src/main/java/com/mango/MainActivity.java" ]; then
             sed -i "s|DEFAULT_URL|${{ github.event.inputs.web_url }}|g" app/src/main/java/com/mango/MainActivity.java
+            echo "URL Injected: ${{ github.event.inputs.web_url }}"
+          else
+            echo "Error: MainActivity.java missing!"
+            exit 1
           fi
 
-      - name: Build with Gradle
-        # Hum ./gradlew use nahi karenge kyunki wo missing/broken hai
-        # Hum direct system gradle use karenge
-        run: gradle assembleRelease
-        working-directory: .
+      - name: Build APK
+        run: |
+          # Agar PC se gradlew upload kiya hai to wo use karega, warna system gradle
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+            ./gradlew assembleRelease
+          else
+            gradle assembleRelease
+          fi
 
-      - name: Upload APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.app_name }}
