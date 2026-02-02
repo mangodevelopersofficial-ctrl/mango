@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: 'App Name from Dashboard'
+        description: 'App Name'
         required: true
       package_name:
-        description: 'Package Name from Dashboard'
+        description: 'Package Name'
         required: true
       web_url:
         description: 'Website URL'
@@ -37,10 +37,10 @@ jobs:
           fi
           chmod +x gradlew
 
-      - name: Dashboard Sync (Name, Package & Icon)
+      - name: Sync Dashboard Data
         run: |
-          # 1. Update App Name (Safe replacement in Manifest)
-          sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' app/src/main/AndroidManifest.xml
+          # 1. Update App Name (Safe Replacement)
+          sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' app/src/main/AndroidManifest.xml || true
           
           # 2. Update Package Name in build.gradle
           if [ -f "app/build.gradle" ]; then
@@ -48,26 +48,33 @@ jobs:
             sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
           fi
 
-          # 3. Update App Icon
+          # 3. Update Icon
           if [ -f "icon.png" ]; then
             for folder in mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
               mkdir -p app/src/main/res/$folder
               cp -f icon.png app/src/main/res/$folder/ic_launcher.png
               cp -f icon.png app/src/main/res/$folder/ic_launcher_round.png
             done
-            echo "✅ Icon processed"
           fi
 
-      - name: Build with Gradle
+      - name: Build APK & AAB
         run: |
-          ./gradlew assembleRelease --stacktrace
-          ./gradlew bundleRelease --stacktrace
+          ./gradlew assembleRelease --no-daemon
+          ./gradlew bundleRelease --no-daemon
 
-      - name: Upload Artifacts (APK & AAB)
+      - name: Prepare Artifacts (The Fix)
+        run: |
+          # Ek naya folder banayen jahan files jama honge
+          mkdir -p output_files
+          # Saari APK aur AAB files ko dhoond kar yahan copy karein
+          find . -name "*.apk" -exec cp {} output_files/ \;
+          find . -name "*.aab" -exec cp {} output_files/ \;
+          # Check karein ke folder khali to nahi
+          ls -R output_files/
+
+      - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Release-Files
-          path: |
-            **/build/outputs/apk/**/*.apk
-            **/build/outputs/bundle/**/*.aab
+          name: ${{ github.event.inputs.app_name }}-Builds
+          path: output_files/
           if-no-files-found: error
