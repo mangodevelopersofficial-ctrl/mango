@@ -1,20 +1,48 @@
-name: Mango Auto Builder
+name: Mango Pro Multi-Platform Builder
 on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: 'App Name'
         required: true
       package_name:
-        description: 'Package ID'
         required: true
+      splash_time:
+        default: '3000'
+      build_type:
+        default: 'apk'
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create Structure
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Inject Pro Features
         run: |
           mkdir -p app/src/main/assets
-          echo "Building: ${{ github.event.inputs.app_name }}"
+          # Injecting Splash and AdMob logic simulation
+          echo "App Name: ${{ github.event.inputs.app_name }}" > build_info.txt
+          echo "Package: ${{ github.event.inputs.package_name }}" >> build_info.txt
+          echo "Splash Delay: ${{ github.event.inputs.splash_time }}ms" >> build_info.txt
+          
+          # Move Dashboard HTML to App Assets
+          cp index.html app/src/main/assets/index.html || echo "<h1>Mango App</h1>" > app/src/main/assets/index.html
+
+      - name: Generate Multi-Format Artifacts
+        run: |
+          echo "Compiling for ${{ github.event.inputs.build_type }}..."
+          mkdir -p output
+          touch output/app-release.${{ github.event.inputs.build_type }}
+          # Yahan asli compiler commands aayengi (e.g. ./gradlew assembleRelease)
+
+      - name: Upload Finished Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mango-Pro-Package-${{ github.event.inputs.build_type }}
+          path: output/*
