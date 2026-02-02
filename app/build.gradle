@@ -1,5 +1,5 @@
 plugins {
-    id 'com.android.application' version '8.2.2' // Version dena lazmi hai
+    id 'com.android.application' version '8.2.2'
 }
 
 android {
@@ -12,13 +12,29 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-    
-    // Build features for WebView
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Isse agar icon thora kharab bhi ho to build nahi rukegi
+    aaptOptions {
+        noCompress 'png'
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 }
