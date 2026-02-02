@@ -32,21 +32,25 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Prepare Android Assets
+      - name: Sync Assets and Inject URL
         run: |
-          # Folders create karna
+          # Folders check/create karna
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/res/mipmap-xxxhdpi
           
-          # Files copy karna (agar dashboard ne bheji hain)
-          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
-          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          # Dashboard files ko sahi jagah move karna
+          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html || echo "No index.html found"
+          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || echo "No icon.png found"
           
-          # MainActivity mein URL update karna
-          # Yahan sed command tabhi kaam karegi agar MainActivity mein 'DEFAULT_URL' likha hoga
-          sed -i "s|DEFAULT_URL|${{ github.event.inputs.web_url }}|g" app/src/main/java/com/mango/MainActivity.java || echo "Skip URL update"
+          # MainActivity mein URL inject karna
+          # Note: Ye line tabhi kaam karegi agar MainActivity.java mein 'DEFAULT_URL' likha hai
+          if [ -f "app/src/main/java/com/mango/MainActivity.java" ]; then
+            sed -i "s|DEFAULT_URL|${{ github.event.inputs.web_url }}|g" app/src/main/java/com/mango/MainActivity.java
+          else
+            echo "MainActivity.java not found at expected path!"
+          fi
 
-      - name: Grant Execute Permission
+      - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
       - name: Build Release APK
