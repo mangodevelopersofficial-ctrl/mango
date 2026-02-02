@@ -1,5 +1,5 @@
 plugins {
-    id 'com.android.application'
+    id 'com.android.application' version '8.2.2' // Version dena lazmi hai
 }
 
 android {
@@ -13,7 +13,8 @@ android {
         versionCode 1
         versionName "1.0"
     }
-
+    
+    // Build features for WebView
     buildTypes {
         release {
             minifyEnabled false
