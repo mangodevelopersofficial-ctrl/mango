@@ -1,27 +1,4 @@
-name: Mango Build Engine
-
-on:
-  workflow_dispatch:
-    inputs:
-      app_name:
-        description: 'App Display Name'
-        required: true
-      package_name:
-        description: 'App Package ID (com.mango.app)'
-        required: true
-      web_url:
-        description: 'URL to load in WebView'
-        required: false
-        default: 'none'
-      splash_time:
-        description: 'Splash duration in ms'
-        required: false
-        default: '3000'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
+steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -30,39 +7,37 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Sync Dashboard Assets
+      - name: Dashboard Sync (Name & Icon)
         run: |
-          # Folders check karna
-          mkdir -p app/src/main/assets
-          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          # 1. App Name badalna (Sirf label ko target karega, name ko nahi)
+          # 'NewAppName' ki jagah dashboard ka variable use ho sakta hai
+          sed -i 's/android:label="[^"]*"/android:label="Mango App"/g' app/src/main/AndroidManifest.xml
           
-          # Dashboard ki files ko sahi jagah move karna
-          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html || echo "Using existing assets"
-          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || echo "Using existing icon"
-          
-          # MainActivity mein dynamic URL dalna
-          if [ -f "app/src/main/java/com/mango/MainActivity.java" ]; then
-            sed -i "s|DEFAULT_URL|${{ github.event.inputs.web_url }}|g" app/src/main/java/com/mango/MainActivity.java
-            echo "URL Injected: ${{ github.event.inputs.web_url }}"
-          else
-            echo "Error: MainActivity.java missing!"
-            exit 1
+          # 2. Icon ko replace karna (Sari densities ke liye)
+          # Agar dashboard se 'icon.png' aa raha hai to ye usay har folder mein set kar dega
+          if [ -f "icon.png" ]; then
+            mkdir -p app/src/main/res/mipmap-hdpi
+            mkdir -p app/src/main/res/mipmap-xhdpi
+            mkdir -p app/src/main/res/mipmap-xxhdpi
+            mkdir -p app/src/main/res/mipmap-xxxhdpi
+            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+            echo "Icon updated successfully!"
           fi
 
-      - name: Build APK
+      - name: Build APK and Bundle (AAB)
         run: |
-          # Agar PC se gradlew upload kiya hai to wo use karega, warna system gradle
-          if [ -f "gradlew" ]; then
-            chmod +x gradlew
-            ./gradlew assembleRelease
-          else
-            gradle assembleRelease
-          fi
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
-      - name: Upload Artifact
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}
-          path: app/build/outputs/apk/release/*.apk
+          name: Mango-Builds
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
