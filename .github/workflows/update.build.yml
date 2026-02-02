@@ -27,35 +27,43 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+
+      - name: Fix Missing Gradle Wrapper
+        run: |
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper
+          fi
+          chmod +x gradlew
 
       - name: Sync Dashboard Data
         run: |
-          # 1. Safe App Name Change (Sirf Label badlega)
+          # 1. Update App Name
           sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' app/src/main/AndroidManifest.xml
           
-          # 2. Package Name Change (build.gradle aur Manifest)
-          sed -i "s/namespace '[^']*'/namespace '${{ github.event.inputs.package_name }}'/g" app/build.gradle
-          sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
+          # 2. Update Package Name in build.gradle
+          if [ -f "app/build.gradle" ]; then
+            sed -i "s/namespace '[^']*'/namespace '${{ github.event.inputs.package_name }}'/g" app/build.gradle
+            sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
+          fi
 
-          # 3. Icon Update (If uploaded)
+          # 3. Update Icon (If icon.png exists)
           if [ -f "icon.png" ]; then
             for folder in mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
               mkdir -p app/src/main/res/$folder
               cp -f icon.png app/src/main/res/$folder/ic_launcher.png
+              cp -f icon.png app/src/main/res/$folder/ic_launcher_round.png
             done
           fi
 
       - name: Build APK & AAB
         run: |
-          chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Release
+          name: ${{ github.event.inputs.app_name }}-Build
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
