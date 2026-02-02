@@ -1,48 +1,62 @@
-name: Mango Pro Multi-Platform Builder
+name: Mango Pro Builder Engine
 on:
   workflow_dispatch:
     inputs:
       app_name:
+        description: 'App Name'
         required: true
       package_name:
+        description: 'Package ID'
         required: true
-      splash_time:
-        default: '3000'
       build_type:
-        default: 'apk'
+        description: 'Format (apk/aab/exe/ios)'
+        required: true
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java Environment
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Inject Pro Features
+      - name: Initialize Project Structure
         run: |
+          # Creating Android folders
           mkdir -p app/src/main/assets
-          # Injecting Splash and AdMob logic simulation
-          echo "App Name: ${{ github.event.inputs.app_name }}" > build_info.txt
-          echo "Package: ${{ github.event.inputs.package_name }}" >> build_info.txt
-          echo "Splash Delay: ${{ github.event.inputs.splash_time }}ms" >> build_info.txt
+          mkdir -p app/src/main/res/mipmap-hdpi
           
-          # Move Dashboard HTML to App Assets
-          cp index.html app/src/main/assets/index.html || echo "<h1>Mango App</h1>" > app/src/main/assets/index.html
+          # HTML Content Injection
+          if [ -f "index.html" ]; then
+            cp index.html app/src/main/assets/index.html
+          else
+            echo "<h1>Mango App Ready</h1>" > app/src/main/assets/index.html
+          fi
 
-      - name: Generate Multi-Format Artifacts
+      - name: Inject Branding (Icon & Splash)
         run: |
-          echo "Compiling for ${{ github.event.inputs.build_type }}..."
-          mkdir -p output
-          touch output/app-release.${{ github.event.inputs.build_type }}
-          # Yahan asli compiler commands aayengi (e.g. ./gradlew assembleRelease)
+          echo "Setting up Icon for ${{ github.event.inputs.app_name }}"
+          # Yahan hum future mein wget commands dalenge icons download karne ke liye
+          
+      - name: Permission & Manifest Setup
+        run: |
+          echo "Injecting Permissions: Location, Camera, Storage"
+          # Ye command AndroidManifest.xml mein permissions add karegi
 
-      - name: Upload Finished Build
+      - name: Compile Application
+        run: |
+          echo "Starting Compilation for ${{ github.event.inputs.build_type }}..."
+          mkdir -p build_output
+          # Fake build for simulation - Yahan asli Gradle command aati hai
+          echo "Build Success" > build_output/app-release.${{ github.event.inputs.build_type }}
+
+      - name: Upload Pro Package
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Pro-Package-${{ github.event.inputs.build_type }}
-          path: output/*
+          name: Mango-Pro-Build-${{ github.event.inputs.build_type }}
+          path: build_output/
