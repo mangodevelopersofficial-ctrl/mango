@@ -1,4 +1,4 @@
-name: Mango Pro Builder Engine
+name: Mango Ultimate Pro Builder
 on:
   workflow_dispatch:
     inputs:
@@ -8,9 +8,12 @@ on:
       package_name:
         description: 'Package ID'
         required: true
-      build_type:
-        description: 'Format (apk/aab/exe/ios)'
-        required: true
+      web_url:
+        description: 'Website URL (Optional)'
+        required: false
+      splash_time:
+        description: 'Splash Delay'
+        default: '3000'
 
 jobs:
   build:
@@ -19,44 +22,42 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java Environment
+      - name: Setup Android Environment
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Initialize Project Structure
+      - name: Inject Assets & Config
         run: |
-          # Creating Android folders
+          # Create Android folders for Icon and Assets
           mkdir -p app/src/main/assets
-          mkdir -p app/src/main/res/mipmap-hdpi
+          mkdir -p app/src/main/res/drawable
           
-          # HTML Content Injection
-          if [ -f "index.html" ]; then
-            cp index.html app/src/main/assets/index.html
+          # Handle Web URL vs HTML Code
+          if [ "${{ github.event.inputs.web_url }}" != "" ]; then
+             echo "window.location.href = '${{ github.event.inputs.web_url }}';" > app/src/main/assets/redirect.js
+             echo "<script src='redirect.js'></script>" > app/src/main/assets/index.html
           else
-            echo "<h1>Mango App Ready</h1>" > app/src/main/assets/index.html
+             cp index.html app/src/main/assets/index.html || echo "<h1>Mango Build</h1>" > app/src/main/assets/index.html
           fi
 
-      - name: Inject Branding (Icon & Splash)
+      - name: Setup App Icon & Splash
         run: |
-          echo "Setting up Icon for ${{ github.event.inputs.app_name }}"
-          # Yahan hum future mein wget commands dalenge icons download karne ke liye
-          
-      - name: Permission & Manifest Setup
-        run: |
-          echo "Injecting Permissions: Location, Camera, Storage"
-          # Ye command AndroidManifest.xml mein permissions add karegi
+          # Dashboard se upload ki gayi images ko yahan process kiya jayega
+          echo "Processing PC uploaded assets..."
+          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png || echo "No custom icon"
+          [ -f "splash.png" ] && cp splash.png app/src/main/res/drawable/splash.png || echo "No custom splash"
 
-      - name: Compile Application
+      - name: Build Professional APK
         run: |
-          echo "Starting Compilation for ${{ github.event.inputs.build_type }}..."
-          mkdir -p build_output
-          # Fake build for simulation - Yahan asli Gradle command aati hai
-          echo "Build Success" > build_output/app-release.${{ github.event.inputs.build_type }}
+          echo "Compiling ${{ github.event.inputs.app_name }}..."
+          # Asli Gradle command yahan aayegi
+          mkdir -p release_folder
+          echo "Simulated APK Content" > release_folder/app-release.apk
 
-      - name: Upload Pro Package
+      - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Pro-Build-${{ github.event.inputs.build_type }}
-          path: build_output/
+          name: ${{ github.event.inputs.app_name }}-Package
+          path: release_folder/
