@@ -1,63 +1,43 @@
-name: Mango Ultimate Pro Builder
+name: Mango Ultimate Engine
 on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: 'App Name'
         required: true
       package_name:
-        description: 'Package ID'
         required: true
       web_url:
-        description: 'Website URL (Optional)'
         required: false
       splash_time:
-        description: 'Splash Delay'
         default: '3000'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Android Environment
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Inject Assets & Config
+      - name: Create Android Structure
         run: |
-          # Create Android folders for Icon and Assets
+          mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/assets
-          mkdir -p app/src/main/res/drawable
           
-          # Handle Web URL vs HTML Code
-          if [ "${{ github.event.inputs.web_url }}" != "" ]; then
-             echo "window.location.href = '${{ github.event.inputs.web_url }}';" > app/src/main/assets/redirect.js
-             echo "<script src='redirect.js'></script>" > app/src/main/assets/index.html
-          else
-             cp index.html app/src/main/assets/index.html || echo "<h1>Mango Build</h1>" > app/src/main/assets/index.html
-          fi
+          # Dashboard se aayi hui images ko sahi jagah rakhna
+          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+          [ -f "splash.png" ] && cp splash.png app/src/main/assets/splash.png
 
-      - name: Setup App Icon & Splash
+          # App Name fix karna (Kashmir IT ko replace karna)
+          echo "<?xml version='1.0' encoding='utf-8'?><resources><string name='app_name'>${{ github.event.inputs.app_name }}</string></resources>" > app/src/main/res/values/strings.xml
+
+      - name: Build Pro APK
         run: |
-          # Dashboard se upload ki gayi images ko yahan process kiya jayega
-          echo "Processing PC uploaded assets..."
-          [ -f "icon.png" ] && cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png || echo "No custom icon"
-          [ -f "splash.png" ] && cp splash.png app/src/main/res/drawable/splash.png || echo "No custom splash"
+          echo "Building ${{ github.event.inputs.app_name }}..."
+          # Yahan asli compiler commands run hongi
+          mkdir -p build_output
+          echo "Mango Build Done" > build_output/app-release.apk
 
-      - name: Build Professional APK
-        run: |
-          echo "Compiling ${{ github.event.inputs.app_name }}..."
-          # Asli Gradle command yahan aayegi
-          mkdir -p release_folder
-          echo "Simulated APK Content" > release_folder/app-release.apk
-
-      - name: Upload Finished APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Package
-          path: release_folder/
+          name: ${{ github.event.inputs.app_name }}-Release
+          path: build_output/
