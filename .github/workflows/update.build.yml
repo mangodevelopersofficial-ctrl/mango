@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Folders
+      - name: Create Structure
         run: |
           mkdir -p app/src/main/assets
-          echo "Ready to build ${{ github.event.inputs.app_name }}"
+          echo "Building: ${{ github.event.inputs.app_name }}"
