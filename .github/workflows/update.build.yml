@@ -1,13 +1,14 @@
-name: Mango Android Builder Pro
+name: Mango Universal Fixer
 
 on:
   workflow_dispatch:
     inputs:
       app_name:
         required: true
+        default: 'MangoApp'
       package_name:
         required: true
-      # Dashboard ke liye ye dono lazmi hain:
+        default: 'com.mango.app'
       web_url:
         default: 'none'
       splash_time:
@@ -26,25 +27,26 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Grant Execute Permission
+      - name: Grant Permissions
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: |
-          ./gradlew clean :app:assembleRelease --no-daemon
+      - name: Build Debug APK
+        # Hum pehle Debug APK banayenge kyunki isme signing ka masla nahi hota
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Prepare Artifacts
         if: always()
         run: |
           mkdir -p final_files
-          # 'find' command use kar rahe hain taake path ka masla hi khatam ho jaye
+          # Ye command poore system mein jahan bhi .apk hai usay dhoond legi
           find . -name "*.apk" -exec cp {} final_files/ \;
-          find . -name "*.aab" -exec cp {} final_files/ \;
+          
+          # Agar koi file mili toh list karega warna error dikhayega
           ls -R final_files/
 
       - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Android
+          name: ${{ github.event.inputs.app_name }}-APK
           path: final_files/
           if-no-files-found: error
