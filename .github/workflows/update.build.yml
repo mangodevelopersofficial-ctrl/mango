@@ -4,18 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: 'App ka naam'
         required: true
-        default: 'MangoApp'
       package_name:
-        description: 'Package ID (e.g. com.mango.app)'
         required: true
-        default: 'com.mango.app'
+      # Dashboard ke liye ye dono lazmi hain:
       web_url:
-        required: false
         default: 'none'
       splash_time:
-        required: false
         default: '3000'
 
 jobs:
@@ -30,30 +25,26 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
 
       - name: Grant Execute Permission
         run: chmod +x gradlew
 
       - name: Build with Gradle
         run: |
-          # Sabse pehle purana kachra saaf karein
-          ./gradlew clean 
-          # Ab APK aur AAB (Bundle) dono banayein
-          ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon
+          ./gradlew clean :app:assembleRelease --no-daemon
 
       - name: Prepare Artifacts
         if: always()
         run: |
           mkdir -p final_files
-          # APKs dhoond kar copy karein
-          find app/build/outputs/apk/release/ -name "*.apk" -exec cp {} final_files/${{ github.event.inputs.app_name }}.apk \;
-          # Bundles (AAB) dhoond kar copy karein
-          find app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} final_files/${{ github.event.inputs.app_name }}.aab \;
+          # 'find' command use kar rahe hain taake path ka masla hi khatam ho jaye
+          find . -name "*.apk" -exec cp {} final_files/ \;
+          find . -name "*.aab" -exec cp {} final_files/ \;
+          ls -R final_files/
 
       - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Android-Files
+          name: ${{ github.event.inputs.app_name }}-Android
           path: final_files/
           if-no-files-found: error
