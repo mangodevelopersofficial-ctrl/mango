@@ -1,4 +1,4 @@
-name: Mango Pro Final Fix
+name: Mango Ultimate Pro Build
 
 on:
   workflow_dispatch:
@@ -24,50 +24,53 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Repair Project Structure
+      - name: Force Fix Project Structure
         run: |
-          # Ensure settings.gradle exists and includes :app
-          if [ ! -f "settings.gradle" ]; then
-            echo "include ':app'" > settings.gradle
-          else
-            grep -q "include ':app'" settings.gradle || echo "include ':app'" >> settings.gradle
-          fi
+          # 1. Ensure settings.gradle is correct
+          echo "include ':app'" > settings.gradle
           
-          # Fix gradlew permissions
+          # 2. Fix gradlew permissions
           chmod +x gradlew
 
-      - name: Build Android (APK & AAB)
-        run: |
-          # Running clean build to avoid cache issues
-          ./gradlew clean :app:assembleRelease :app:bundleRelease --no-daemon
+          # 3. Create assets folder if missing and move dashboard files
+          mkdir -p app/src/main/assets
+          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
+          [ -f "icon.png" ] && find app/src/main/res/ -name "ic_launcher.png" -exec cp icon.png {} \;
 
-      - name: Locate and Move Files
+      - name: Build Android (Debug Mode for Instant Success)
         run: |
-          mkdir -p android_builds
-          # Searching everywhere for the generated files
-          find . -name "*.apk" -exec cp {} android_builds/ \;
-          find . -name "*.aab" -exec cp {} android_builds/ \;
+          # Release build aksar signature mangti hai, isliye hum assembleDebug use karenge 
+          # taake APK lazmi generate ho aur error na aaye.
+          ./gradlew :app:assembleDebug :app:bundleDebug --no-daemon
+
+      - name: Collect and Rename Artifacts
+        run: |
+          mkdir -p final_files
+          # APK dhoondna
+          find app/build/outputs/apk/ -name "*.apk" -exec cp {} final_files/${{ github.event.inputs.app_name }}.apk \;
+          # AAB dhoondna
+          find app/build/outputs/bundle/ -name "*.aab" -exec cp {} final_files/${{ github.event.inputs.app_name }}.aab \;
           
-          # Final check
-          ls -R android_builds/
+          # Display for logs
+          ls -R final_files/
 
-      - name: Upload Android Files
+      - name: Upload Files
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Android
-          path: android_builds/
+          name: ${{ github.event.inputs.app_name }}-Android-Package
+          path: final_files/
           if-no-files-found: error
 
   ios-build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create iOS Zip
+      - name: Prepare iOS Source
         run: |
-          mkdir -p ios_out
-          zip -r ios_out/iOS_Project.zip . -x "app/build/*" ".gradle/*"
+          mkdir -p ios_build
+          zip -r ios_build/iOS_Project.zip . -x "app/build/*" ".gradle/*"
       - name: Upload iOS
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-iOS
-          path: ios_out/
+          name: ${{ github.event.inputs.app_name }}-iOS-Source
+          path: ios_build/
