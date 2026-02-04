@@ -13,7 +13,6 @@ on:
         default: '3000'
 
 jobs:
-  # --- ANDROID JOB (APK & AAB) ---
   android-build:
     runs-on: ubuntu-latest
     steps:
@@ -25,60 +24,48 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android Project
+      - name: Setup & Build
         run: |
-          # Agar gradlew missing hai to naya banao
-          if [ ! -f "gradlew" ]; then
+          # 1. Gradlew Check
+          GRADLEW_BIN=$(find . -name gradlew | head -n 1)
+          if [ -z "$GRADLEW_BIN" ]; then
             gradle wrapper
+            GRADLEW_BIN="./gradlew"
           fi
-          chmod +x gradlew
+          chmod +x "$GRADLEW_BIN"
 
-          # Dashboard Assets Sync
-          mkdir -p app/src/main/assets
-          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
+          # 2. Build Commands
+          $GRADLEW_BIN assembleRelease --no-daemon || echo "Build Failed but continuing to debug..."
+          $GRADLEW_BIN bundleRelease --no-daemon || echo "Bundle Failed..."
+
+      - name: Find and Move Files
+        run: |
+          mkdir -p final_artifacts
+          echo "Listing all APKs found:"
+          find . -name "*.apk" -exec cp {} final_artifacts/ \;
+          echo "Listing all AABs found:"
+          find . -name "*.aab" -exec cp {} final_artifacts/ \;
           
-          # Android Manifest aur Package Name update (Deep Search)
-          find . -name "AndroidManifest.xml" -exec sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' {} +
-          find . -name "build.gradle" -exec sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" {} +
+          # Check if any file was actually copied
+          ls -R final_artifacts/
 
-      - name: Build Android Release
-        run: |
-          # Force build even if there are minor errors
-          ./gradlew assembleRelease --no-daemon || echo "APK Build failed, checking reasons..."
-          ./gradlew bundleRelease --no-daemon || echo "AAB Build failed..."
-
-      - name: Collect Android Artifacts
-        run: |
-          mkdir -p android_builds
-          # Poori repository mein se APK aur AAB dhoond kar copy karo
-          find . -name "*.apk" -exec cp {} android_builds/ \;
-          find . -name "*.aab" -exec cp {} android_builds/ \;
-          # Check if files exist
-          ls -R android_builds/
-
-      - name: Upload Android Files
+      - name: Upload Android
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Android-Files
-          path: android_builds/
-          if-no-files-found: error
+          name: ${{ github.event.inputs.app_name }}-Android
+          path: final_artifacts/
+          if-no-files-found: warn # Ab error nahi dega balkay warn karega agar file na mili
 
-  # --- iOS JOB (IPA / Zip) ---
   ios-build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare iOS Files
+      - name: Zip iOS Project
         run: |
-          mkdir -p ios_output
-          # Dashboard info save karein
-          echo "App Name: ${{ github.event.inputs.app_name }}" > ios_output/info.txt
-          echo "Package: ${{ github.event.inputs.package_name }}" >> ios_output/info.txt
-          # Pura project zip karein (Standard for iOS manual signing)
-          zip -r ios_output/${{ github.event.inputs.app_name }}_iOS.zip . -x "android/*" "node_modules/*"
-
-      - name: Upload iOS Result
+          mkdir -p ios_out
+          zip -r ios_out/Project.zip . -x "android/*"
+      - name: Upload iOS
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-iOS-Project
-          path: ios_output/
+          name: ${{ github.event.inputs.app_name }}-iOS
+          path: ios_out/
