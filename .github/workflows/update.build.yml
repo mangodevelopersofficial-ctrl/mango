@@ -1,16 +1,9 @@
 name: Android Build
 
 on:
+  push:
+    branches: [ "main" ]
   workflow_dispatch:
-    inputs:
-      app_name:
-        required: true
-      package_name:
-        required: true
-      web_url:
-        required: false
-      splash_time:
-        required: false
 
 jobs:
   build:
@@ -18,31 +11,35 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Grant Gradle Permission
+      - name: Grant permission to gradlew
         run: chmod +x gradlew
 
-      - name: Build APK
+      # ---------- BUILD APK ----------
+      - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Build AAB
+      # ---------- BUILD AAB ----------
+      - name: Build Release AAB
         run: ./gradlew bundleRelease
 
-      - name: Collect Files
+      # ---------- COLLECT FILES ----------
+      - name: Collect build files
         run: |
           mkdir build_artifacts
           cp app/build/outputs/apk/release/app-release.apk build_artifacts/
           cp app/build/outputs/bundle/release/app-release.aab build_artifacts/
 
+      # ---------- UPLOAD ARTIFACTS ----------
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: Mango-Android-Files
+          name: Android-Build
           path: build_artifacts
