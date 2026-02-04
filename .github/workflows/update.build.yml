@@ -28,53 +28,48 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Fix Gradle Wrapper
         run: |
-          if [ ! -f "gradlew" ]; then
+          # Dhoondo gradlew kahan hai aur wahi build chalao
+          GRADLEW_PATH=$(find . -name gradlew | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
             gradle wrapper
+            chmod +x gradlew
+          else
+            chmod +x "$GRADLEW_PATH"
           fi
-          chmod +x gradlew
 
       - name: Sync Dashboard Data
         run: |
-          # 1. Update App Name (Safe Replacement)
-          sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' app/src/main/AndroidManifest.xml || true
+          # Har jagah AndroidManifest dhoond kar update karo
+          find . -name "AndroidManifest.xml" -exec sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' {} +
           
-          # 2. Update Package Name in build.gradle
-          if [ -f "app/build.gradle" ]; then
-            sed -i "s/namespace '[^']*'/namespace '${{ github.event.inputs.package_name }}'/g" app/build.gradle
-            sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
-          fi
-
-          # 3. Update Icon
-          if [ -f "icon.png" ]; then
-            for folder in mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
-              mkdir -p app/src/main/res/$folder
-              cp -f icon.png app/src/main/res/$folder/ic_launcher.png
-              cp -f icon.png app/src/main/res/$folder/ic_launcher_round.png
-            done
-          fi
+          # build.gradle files ko update karo
+          find . -name "build.gradle" -exec sed -i "s/namespace '[^']*'/namespace '${{ github.event.inputs.package_name }}'/g" {} +
+          find . -name "build.gradle" -exec sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" {} +
 
       - name: Build APK & AAB
         run: |
-          ./gradlew assembleRelease --no-daemon
-          ./gradlew bundleRelease --no-daemon
+          # Gradlew ko dhoond kar build command dena
+          BUILD_CMD=$(find . -name gradlew | head -n 1)
+          $BUILD_CMD assembleRelease --no-daemon
+          $BUILD_CMD bundleRelease --no-daemon
 
-      - name: Prepare Artifacts (The Fix)
+      - name: Prepare Artifacts (Absolute Fix)
         run: |
-          # Ek naya folder banayen jahan files jama honge
-          mkdir -p output_files
-          # Saari APK aur AAB files ko dhoond kar yahan copy karein
-          find . -name "*.apk" -exec cp {} output_files/ \;
-          find . -name "*.aab" -exec cp {} output_files/ \;
-          # Check karein ke folder khali to nahi
-          ls -R output_files/
+          mkdir -p final_output
+          echo "🔍 Searching for APKs..."
+          find . -name "*.apk" -not -path "*/build-cache/*" -exec cp {} final_output/ \;
+          echo "🔍 Searching for AABs..."
+          find . -name "*.aab" -not -path "*/build-cache/*" -exec cp {} final_output/ \;
+          
+          # Debugging: List files taake humein log mein nazar aayein
+          ls -R final_output
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Builds
-          path: output_files/
+          name: ${{ github.event.inputs.app_name }}-Package
+          path: final_output/
           if-no-files-found: error
