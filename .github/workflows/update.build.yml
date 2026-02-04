@@ -1,45 +1,59 @@
-name: Android Build
+name: Mango Android Builder Pro
 
 on:
-  push:
-    branches: ["main"]
   workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'App ka naam'
+        required: true
+        default: 'MangoApp'
+      package_name:
+        description: 'Package ID (e.g. com.mango.app)'
+        required: true
+        default: 'com.mango.app'
+      web_url:
+        required: false
+        default: 'none'
+      splash_time:
+        required: false
+        default: '3000'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Grant permission to gradlew
+      - name: Grant Execute Permission
         run: chmod +x gradlew
 
-      # 🔹 Build APK
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
-
-      # 🔹 Build AAB
-      - name: Build Release AAB
-        run: ./gradlew bundleRelease
-
-      # 🔹 Collect files
-      - name: Collect build files
+      - name: Build with Gradle
         run: |
-          mkdir build_artifacts
-          cp app/build/outputs/apk/release/app-release.apk build_artifacts/ || true
-          cp app/build/outputs/bundle/release/app-release.aab build_artifacts/ || true
+          # Sabse pehle purana kachra saaf karein
+          ./gradlew clean 
+          # Ab APK aur AAB (Bundle) dono banayein
+          ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon
 
-      # 🔹 Upload artifacts (v4)
-      - name: Upload Artifacts
+      - name: Prepare Artifacts
+        if: always()
+        run: |
+          mkdir -p final_files
+          # APKs dhoond kar copy karein
+          find app/build/outputs/apk/release/ -name "*.apk" -exec cp {} final_files/${{ github.event.inputs.app_name }}.apk \;
+          # Bundles (AAB) dhoond kar copy karein
+          find app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} final_files/${{ github.event.inputs.app_name }}.aab \;
+
+      - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: Android-Build
-          path: build_artifacts
+          name: ${{ github.event.inputs.app_name }}-Android-Files
+          path: final_files/
+          if-no-files-found: error
