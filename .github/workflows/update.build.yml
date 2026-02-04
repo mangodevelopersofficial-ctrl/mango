@@ -1,4 +1,4 @@
-name: Mango Ultimate Pro Build
+name: Mango Android Builder
 
 on:
   workflow_dispatch:
@@ -24,53 +24,34 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Force Fix Project Structure
+      - name: Fix Project Structure
         run: |
-          # 1. Ensure settings.gradle is correct
+          # Settings fix
           echo "include ':app'" > settings.gradle
-          
-          # 2. Fix gradlew permissions
           chmod +x gradlew
-
-          # 3. Create assets folder if missing and move dashboard files
+          
+          # Assets placement
           mkdir -p app/src/main/assets
           [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
-          [ -f "icon.png" ] && find app/src/main/res/ -name "ic_launcher.png" -exec cp icon.png {} \;
 
-      - name: Build Android (Debug Mode for Instant Success)
+      - name: Build APK & AAB
         run: |
-          # Release build aksar signature mangti hai, isliye hum assembleDebug use karenge 
-          # taake APK lazmi generate ho aur error na aaye.
+          # Debug builds are faster and don't require signing keys
           ./gradlew :app:assembleDebug :app:bundleDebug --no-daemon
 
-      - name: Collect and Rename Artifacts
+      - name: Collect Files
         run: |
-          mkdir -p final_files
-          # APK dhoondna
-          find app/build/outputs/apk/ -name "*.apk" -exec cp {} final_files/${{ github.event.inputs.app_name }}.apk \;
-          # AAB dhoondna
-          find app/build/outputs/bundle/ -name "*.aab" -exec cp {} final_files/${{ github.event.inputs.app_name }}.aab \;
+          mkdir -p build_artifacts
+          # Deep search for APK and AAB
+          find app/build/outputs/apk/ -name "*.apk" -exec cp {} build_artifacts/${{ github.event.inputs.app_name }}.apk \;
+          find app/build/outputs/bundle/ -name "*.aab" -exec cp {} build_artifacts/${{ github.event.inputs.app_name }}.aab \;
           
-          # Display for logs
-          ls -R final_files/
+          # Verification
+          ls -R build_artifacts/
 
-      - name: Upload Files
+      - name: Upload Android Files
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.app_name }}-Android-Package
-          path: final_files/
+          path: build_artifacts/
           if-no-files-found: error
-
-  ios-build:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Prepare iOS Source
-        run: |
-          mkdir -p ios_build
-          zip -r ios_build/iOS_Project.zip . -x "app/build/*" ".gradle/*"
-      - name: Upload iOS
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.event.inputs.app_name }}-iOS-Source
-          path: ios_build/
