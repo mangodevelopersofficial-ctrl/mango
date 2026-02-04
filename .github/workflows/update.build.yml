@@ -1,4 +1,4 @@
-name: Mango Pro Multi-Platform
+name: Mango Multi-Platform Pro
 
 on:
   workflow_dispatch:
@@ -24,46 +24,43 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup & Build
+      - name: Sync Dashboard Assets
         run: |
-          # 1. Gradlew Check
-          GRADLEW_BIN=$(find . -name gradlew | head -n 1)
-          if [ -z "$GRADLEW_BIN" ]; then
-            gradle wrapper
-            GRADLEW_BIN="./gradlew"
-          fi
-          chmod +x "$GRADLEW_BIN"
-
-          # 2. Build Commands
-          $GRADLEW_BIN assembleRelease --no-daemon || echo "Build Failed but continuing to debug..."
-          $GRADLEW_BIN bundleRelease --no-daemon || echo "Bundle Failed..."
-
-      - name: Find and Move Files
-        run: |
-          mkdir -p final_artifacts
-          echo "Listing all APKs found:"
-          find . -name "*.apk" -exec cp {} final_artifacts/ \;
-          echo "Listing all AABs found:"
-          find . -name "*.aab" -exec cp {} final_artifacts/ \;
+          # Dashboard se aayi hui files ko app folder mein sahi jagah set karna
+          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
+          [ -f "icon.png" ] && find app/src/main/res/ -name "ic_launcher.png" -exec cp icon.png {} \;
           
-          # Check if any file was actually copied
-          ls -R final_artifacts/
+          # Identity Update
+          sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
+          find app/src/main/ -name "AndroidManifest.xml" -exec sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' {} +
 
-      - name: Upload Android
+      - name: Build Android
+        run: |
+          chmod +x gradlew
+          # Build specifically targeting the app module
+          ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon
+
+      - name: Collect Results
+        run: |
+          mkdir -p output
+          # Sahi path se files uthana
+          cp app/build/outputs/apk/release/*.apk output/ 2>/dev/null || find . -name "*.apk" -exec cp {} output/ \;
+          cp app/build/outputs/bundle/release/*.aab output/ 2>/dev/null || find . -name "*.aab" -exec cp {} output/ \;
+
+      - name: Upload APK & AAB
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.app_name }}-Android
-          path: final_artifacts/
-          if-no-files-found: warn # Ab error nahi dega balkay warn karega agar file na mili
+          path: output/
 
   ios-build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Zip iOS Project
+      - name: Create iOS Project Zip
         run: |
           mkdir -p ios_out
-          zip -r ios_out/Project.zip . -x "android/*"
+          zip -r ios_out/iOS_Source.zip . -x "app/build/*" ".gradle/*"
       - name: Upload iOS
         uses: actions/upload-artifact@v4
         with:
