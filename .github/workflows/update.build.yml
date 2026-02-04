@@ -1,19 +1,19 @@
-name: Mango Android Builder
+name: Mango Build System
 
 on:
   workflow_dispatch:
     inputs:
       app_name:
+        description: 'App Name'
         required: true
+        default: 'Mango App'
       package_name:
+        description: 'Package Name'
         required: true
-      web_url:
-        default: 'none'
-      splash_time:
-        default: '3000'
+        default: 'com.mango'
 
 jobs:
-  android-build:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,41 +24,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Auto-Fix Structure
+      - name: Update App Identity
         run: |
-          # 1. Force Link Module
-          echo "include ':app'" > settings.gradle
-          chmod +x gradlew
+          # App Name Change (Safe Method)
+          sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.inputs.app_name }}/g" app/src/main/AndroidManifest.xml
           
-          # 2. Sync Dashboard Assets (Direct to correct path)
-          mkdir -p app/src/main/assets
-          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
-          [ -f "icon.png" ] && find app/src/main/res/ -name "ic_launcher.png" -exec cp icon.png {} \;
+          # Package Name Change in build.gradle
+          sed -i "s/namespace 'com.mango'/namespace '${{ github.event.inputs.package_name }}'/g" app/build.gradle
 
       - name: Build APK & AAB
         run: |
-          # Clean build starts fresh
-          ./gradlew clean assembleDebug bundleDebug --no-daemon || echo "Build issues, but trying to find files anyway..."
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
-      - name: Collect Files (Smart Search)
-        run: |
-          mkdir -p build_artifacts
-          
-          # Pure project mein jahan bhi .apk ya .aab hai, sab uthao
-          find . -name "*.apk" -exec cp {} build_artifacts/ \;
-          find . -name "*.aab" -exec cp {} build_artifacts/ \;
-          
-          # Rename files as per app_name input
-          cd build_artifacts
-          for f in *.apk; do mv "$f" "${{ github.event.inputs.app_name }}.apk" 2>/dev/null || true; break; done
-          for f in *.aab; do mv "$f" "${{ github.event.inputs.app_name }}.aab" 2>/dev/null || true; break; done
-          
-          # Show what we found
-          ls -R
-
-      - name: Upload Android Files
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Android-Files
-          path: build_artifacts/
-          if-no-files-found: warn
+          name: ${{ github.event.inputs.app_name }}-Builds
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
