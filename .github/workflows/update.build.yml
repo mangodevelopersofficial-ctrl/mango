@@ -7,12 +7,9 @@ on:
         required: true
       package_name:
         required: true
-      # Ye inputs Dashboard ke liye lazmi hain:
       web_url:
-        required: false
         default: 'none'
       splash_time:
-        required: false
         default: '3000'
 
 jobs:
@@ -27,34 +24,35 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Fix Root Structure
+      - name: Link Project Files
         run: |
-          # 1. Root build.gradle banana (Agar missing ho)
-          if [ ! -f "build.gradle" ]; then
-            echo "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.1.1' } }" > build.gradle
-            echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
-          fi
+          # Permission fix
+          chmod +x gradlew
           
-          # 2. Settings file fix
+          # Settings file ko check karna aur fix karna
           echo "include ':app'" > settings.gradle
           
-          # 3. Permissions
-          chmod +x gradlew
+          # Dashboard se aayi hui index.html ko assets mein daalna
+          mkdir -p app/src/main/assets
+          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
 
       - name: Build APK
         run: |
-          # Direct app module ko target karna
+          # Is command se Gradle seedha 'app' folder ki build.gradle par jayega
           ./gradlew :app:assembleDebug --no-daemon
 
       - name: Collect Results
         run: |
           mkdir -p build_artifacts
-          # Poori repo mein jahan bhi APK bani ho, usey uthao
+          # Poore system mein jahan bhi APK bani ho, usey uthao
           find . -name "*.apk" -exec cp {} build_artifacts/${{ github.event.inputs.app_name }}.apk \;
+          
+          # Check for artifacts
           ls -R build_artifacts/
 
-      - name: Upload
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Android
+          name: ${{ github.event.inputs.app_name }}-Android-App
           path: build_artifacts/
+          if-no-files-found: error
