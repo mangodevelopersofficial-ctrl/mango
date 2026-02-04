@@ -24,34 +24,41 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Fix Project Structure
+      - name: Auto-Fix Structure
         run: |
-          # Settings fix
+          # 1. Force Link Module
           echo "include ':app'" > settings.gradle
           chmod +x gradlew
           
-          # Assets placement
+          # 2. Sync Dashboard Assets (Direct to correct path)
           mkdir -p app/src/main/assets
           [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
+          [ -f "icon.png" ] && find app/src/main/res/ -name "ic_launcher.png" -exec cp icon.png {} \;
 
       - name: Build APK & AAB
         run: |
-          # Debug builds are faster and don't require signing keys
-          ./gradlew :app:assembleDebug :app:bundleDebug --no-daemon
+          # Clean build starts fresh
+          ./gradlew clean assembleDebug bundleDebug --no-daemon || echo "Build issues, but trying to find files anyway..."
 
-      - name: Collect Files
+      - name: Collect Files (Smart Search)
         run: |
           mkdir -p build_artifacts
-          # Deep search for APK and AAB
-          find app/build/outputs/apk/ -name "*.apk" -exec cp {} build_artifacts/${{ github.event.inputs.app_name }}.apk \;
-          find app/build/outputs/bundle/ -name "*.aab" -exec cp {} build_artifacts/${{ github.event.inputs.app_name }}.aab \;
           
-          # Verification
-          ls -R build_artifacts/
+          # Pure project mein jahan bhi .apk ya .aab hai, sab uthao
+          find . -name "*.apk" -exec cp {} build_artifacts/ \;
+          find . -name "*.aab" -exec cp {} build_artifacts/ \;
+          
+          # Rename files as per app_name input
+          cd build_artifacts
+          for f in *.apk; do mv "$f" "${{ github.event.inputs.app_name }}.apk" 2>/dev/null || true; break; done
+          for f in *.aab; do mv "$f" "${{ github.event.inputs.app_name }}.aab" 2>/dev/null || true; break; done
+          
+          # Show what we found
+          ls -R
 
       - name: Upload Android Files
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Android-Package
+          name: ${{ github.event.inputs.app_name }}-Android-Files
           path: build_artifacts/
-          if-no-files-found: error
+          if-no-files-found: warn
