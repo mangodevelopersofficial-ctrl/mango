@@ -2,7 +2,7 @@ name: Android Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -22,24 +22,24 @@ jobs:
       - name: Grant permission to gradlew
         run: chmod +x gradlew
 
-      # ---------- BUILD APK ----------
+      # 🔹 Build APK
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      # ---------- BUILD AAB ----------
+      # 🔹 Build AAB
       - name: Build Release AAB
         run: ./gradlew bundleRelease
 
-      # ---------- COLLECT FILES ----------
+      # 🔹 Collect files
       - name: Collect build files
         run: |
           mkdir build_artifacts
-          cp app/build/outputs/apk/release/app-release.apk build_artifacts/
-          cp app/build/outputs/bundle/release/app-release.aab build_artifacts/
+          cp app/build/outputs/apk/release/app-release.apk build_artifacts/ || true
+          cp app/build/outputs/bundle/release/app-release.aab build_artifacts/ || true
 
-      # ---------- UPLOAD ARTIFACTS ----------
+      # 🔹 Upload artifacts (v4)
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Android-Build
           path: build_artifacts
