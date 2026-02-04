@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    // Version yahan se hata diya hai kyunki wo Root wali file mein maujood hai
 }
 
 android {
@@ -20,7 +19,8 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Ye line add karne se bina key ke bhi build ban jayegi:
+            
+            // Ye line sabse ahem hai, iske baghair APK folder nahi banta
             signingConfig signingConfigs.debug 
         }
     }
@@ -39,5 +39,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.webkit:webkit:1.9.0' // WebView apps ke liye ye zaroori hai
+    implementation 'androidx.webkit:webkit:1.9.0'
 }
