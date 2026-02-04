@@ -24,30 +24,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build Android (Specific Module)
+      - name: Repair Project Structure
         run: |
+          # Ensure settings.gradle exists and includes :app
+          if [ ! -f "settings.gradle" ]; then
+            echo "include ':app'" > settings.gradle
+          else
+            grep -q "include ':app'" settings.gradle || echo "include ':app'" >> settings.gradle
+          fi
+          
+          # Fix gradlew permissions
           chmod +x gradlew
-          # Force build and ignore minor lint errors
-          ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon
+
+      - name: Build Android (APK & AAB)
+        run: |
+          # Running clean build to avoid cache issues
+          ./gradlew clean :app:assembleRelease :app:bundleRelease --no-daemon
 
       - name: Locate and Move Files
         run: |
           mkdir -p android_builds
-          echo "Checking build directories..."
-          # Standard location check
-          [ -d "app/build/outputs/apk/release" ] && cp app/build/outputs/apk/release/*.apk android_builds/ || echo "No APK in standard path"
-          [ -d "app/build/outputs/bundle/release" ] && cp app/build/outputs/bundle/release/*.aab android_builds/ || echo "No AAB in standard path"
+          # Searching everywhere for the generated files
+          find . -name "*.apk" -exec cp {} android_builds/ \;
+          find . -name "*.aab" -exec cp {} android_builds/ \;
           
-          # Deep scan if standard fails
-          if [ -z "$(ls -A android_builds)" ]; then
-            echo "Standard path failed, deep scanning..."
-            find . -name "*.apk" -exec cp {} android_builds/ \;
-            find . -name "*.aab" -exec cp {} android_builds/ \;
-          fi
-
-      - name: Debug Server Files (If fails)
-        if: failure()
-        run: ls -R
+          # Final check
+          ls -R android_builds/
 
       - name: Upload Android Files
         uses: actions/upload-artifact@v4
@@ -63,7 +65,7 @@ jobs:
       - name: Create iOS Zip
         run: |
           mkdir -p ios_out
-          zip -r ios_out/iOS_Project.zip . -x "app/build/*"
+          zip -r ios_out/iOS_Project.zip . -x "app/build/*" ".gradle/*"
       - name: Upload iOS
         uses: actions/upload-artifact@v4
         with:
