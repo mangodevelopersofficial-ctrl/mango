@@ -1,4 +1,4 @@
-name: Mango Final Build
+name: Mango Android Builder
 
 on:
   workflow_dispatch:
@@ -7,6 +7,13 @@ on:
         required: true
       package_name:
         required: true
+      # Ye inputs Dashboard ke liye lazmi hain:
+      web_url:
+        required: false
+        default: 'none'
+      splash_time:
+        required: false
+        default: '3000'
 
 jobs:
   android-build:
@@ -20,27 +27,34 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Prepare Gradle
+      - name: Fix Root Structure
         run: |
-          chmod +x gradlew
-          # Agar root build.gradle missing ho to ye command temporarily bana degi
+          # 1. Root build.gradle banana (Agar missing ho)
           if [ ! -f "build.gradle" ]; then
             echo "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.1.1' } }" > build.gradle
             echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
           fi
+          
+          # 2. Settings file fix
+          echo "include ':app'" > settings.gradle
+          
+          # 3. Permissions
+          chmod +x gradlew
 
       - name: Build APK
         run: |
+          # Direct app module ko target karna
           ./gradlew :app:assembleDebug --no-daemon
 
-      - name: Collect Result
+      - name: Collect Results
         run: |
-          mkdir -p final_apk
-          # App folder ke andar se APK uthana
-          find app/build/outputs/apk/debug/ -name "*.apk" -exec cp {} final_apk/${{ github.event.inputs.app_name }}.apk \;
+          mkdir -p build_artifacts
+          # Poori repo mein jahan bhi APK bani ho, usey uthao
+          find . -name "*.apk" -exec cp {} build_artifacts/${{ github.event.inputs.app_name }}.apk \;
+          ls -R build_artifacts/
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-Download
-          path: final_apk/
+          name: ${{ github.event.inputs.app_name }}-Android
+          path: build_artifacts/
