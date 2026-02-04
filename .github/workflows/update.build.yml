@@ -1,4 +1,4 @@
-name: Mango Multi-Platform Pro
+name: Mango Pro Final Fix
 
 on:
   workflow_dispatch:
@@ -24,43 +24,46 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Sync Dashboard Assets
-        run: |
-          # Dashboard se aayi hui files ko app folder mein sahi jagah set karna
-          [ -f "index.html" ] && cp index.html app/src/main/assets/index.html
-          [ -f "icon.png" ] && find app/src/main/res/ -name "ic_launcher.png" -exec cp icon.png {} \;
-          
-          # Identity Update
-          sed -i "s/applicationId \"[^\"]*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
-          find app/src/main/ -name "AndroidManifest.xml" -exec sed -i 's/android:label="[^"]*"/android:label="${{ github.event.inputs.app_name }}"/g' {} +
-
-      - name: Build Android
+      - name: Build Android (Specific Module)
         run: |
           chmod +x gradlew
-          # Build specifically targeting the app module
+          # Force build and ignore minor lint errors
           ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon
 
-      - name: Collect Results
+      - name: Locate and Move Files
         run: |
-          mkdir -p output
-          # Sahi path se files uthana
-          cp app/build/outputs/apk/release/*.apk output/ 2>/dev/null || find . -name "*.apk" -exec cp {} output/ \;
-          cp app/build/outputs/bundle/release/*.aab output/ 2>/dev/null || find . -name "*.aab" -exec cp {} output/ \;
+          mkdir -p android_builds
+          echo "Checking build directories..."
+          # Standard location check
+          [ -d "app/build/outputs/apk/release" ] && cp app/build/outputs/apk/release/*.apk android_builds/ || echo "No APK in standard path"
+          [ -d "app/build/outputs/bundle/release" ] && cp app/build/outputs/bundle/release/*.aab android_builds/ || echo "No AAB in standard path"
+          
+          # Deep scan if standard fails
+          if [ -z "$(ls -A android_builds)" ]; then
+            echo "Standard path failed, deep scanning..."
+            find . -name "*.apk" -exec cp {} android_builds/ \;
+            find . -name "*.aab" -exec cp {} android_builds/ \;
+          fi
 
-      - name: Upload APK & AAB
+      - name: Debug Server Files (If fails)
+        if: failure()
+        run: ls -R
+
+      - name: Upload Android Files
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.app_name }}-Android
-          path: output/
+          path: android_builds/
+          if-no-files-found: error
 
   ios-build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create iOS Project Zip
+      - name: Create iOS Zip
         run: |
           mkdir -p ios_out
-          zip -r ios_out/iOS_Source.zip . -x "app/build/*" ".gradle/*"
+          zip -r ios_out/iOS_Project.zip . -x "app/build/*"
       - name: Upload iOS
         uses: actions/upload-artifact@v4
         with:
