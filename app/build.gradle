@@ -1,5 +1,6 @@
 plugins {
-    id 'com.android.application' version '8.2.2'
+    id 'com.android.application'
+    // Version yahan se hata diya hai kyunki wo Root wali file mein maujood hai
 }
 
 android {
@@ -19,10 +20,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Ye line add karne se bina key ke bhi build ban jayegi:
+            signingConfig signingConfigs.debug 
         }
     }
 
-    // Isse agar icon thora kharab bhi ho to build nahi rukegi
     aaptOptions {
         noCompress 'png'
     }
@@ -37,4 +39,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.webkit:webkit:1.9.0' // WebView apps ke liye ye zaroori hai
 }
