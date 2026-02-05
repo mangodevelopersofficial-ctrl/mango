@@ -8,9 +8,18 @@ on:
         required: true
         default: 'Mango App'
       package_name:
-        description: 'Package ID (e.g. com.mango.app)'
+        description: 'Package ID'
         required: true
         default: 'com.mango.app'
+      # Yeh do inputs wapas add kar diye taake error khatam ho jaye
+      web_url:
+        description: 'Web URL'
+        required: false
+        default: 'https://google.com'
+      splash_time:
+        description: 'Splash Time'
+        required: false
+        default: '3000'
 
 jobs:
   build:
@@ -26,15 +35,14 @@ jobs:
           distribution: 'temurin'
 
       - name: Force Repair Structure
-        # Ye step aapke files ke paths aur wrapper ko sahi karega
+        # Yeh step aapki khali gradlew file ko server par sahi karega
         run: |
           rm -f gradlew
-          rm -rf gradle/
           gradle wrapper --gradle-version 8.0
           chmod +x gradlew
 
       - name: Build APK and AAB
-        # Is step ko 3-5 minutes lene chahiye
+        # Yeh step ab asli build shuru karega
         run: ./gradlew assembleDebug bundleDebug --no-daemon --stacktrace
 
       - name: Upload Artifacts
