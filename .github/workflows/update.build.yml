@@ -34,7 +34,6 @@ jobs:
           distribution: 'temurin'
 
       - name: Force Repair Gradlew
-        # Hum purani files delete karke bilkul fresh wrapper banayenge
         run: |
           rm -f gradlew
           rm -rf gradle/
@@ -42,12 +41,12 @@ jobs:
           chmod +x gradlew
 
       - name: Build APK
-        # Clean aur stacktrace errors ko pakadne ke liye zaroori hain
-        run: ./gradlew clean assembleDebug --no-daemon --stacktrace
+        # Humne yahan --stacktrace aur --info add kiya hai takay error detail mein dikhayi de
+        run: ./gradlew clean assembleDebug --no-daemon --stacktrace --info
 
       - name: Upload APK
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Release-Package
+          name: Mango-Final-APK
           path: app/build/outputs/apk/debug/*.apk
