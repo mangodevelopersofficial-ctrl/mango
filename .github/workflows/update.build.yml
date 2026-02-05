@@ -1,99 +1,41 @@
-name: Mango Ultimate Engine
-on:
-  workflow_dispatch:
-    inputs:
-      app_name:
-        required: true
-        type: string
-      package_name:
-        required: true
-        type: string
-      web_url:
-        required: false
-        type: string
-        default: "none"
-      splash_time:
-        type: string
-        default: '3000'
+name: Mango APK Builder
+on: [workflow_dispatch]
 
 jobs:
-  android-build:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup JDK
+      # Step 1: Code download
+      - uses: actions/checkout@v4
+      
+      # Step 2: Java setup
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
-
+      
+      # Step 3: Fix permissions
       - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Inject Assets
         run: |
-          mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/assets
-          
-          if [ -f "icon.png" ]; then
-            cp -f icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png 2>/dev/null || true
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+            echo "✅ gradlew ready"
+          else
+            echo "❌ gradlew missing"
+            exit 1
           fi
-          
-          if [ -f "splash.png" ]; then
-            cp -f splash.png app/src/main/assets/splash.png
-          fi
-          
-          cp -f index.html app/src/main/assets/index.html
-          
-          echo "<?xml version='1.0' encoding='utf-8'?><resources><string name='app_name'>${{ github.event.inputs.app_name }}</string></resources>" > app/src/main/res/values/strings.xml
-          
-          echo "✅ Assets injected"
-
-      - name: Build APK and AAB
+      
+      # Step 4: Build ONLY DEBUG APK
+      - name: Build Debug APK
         run: |
           ./gradlew clean
           ./gradlew assembleDebug
-          ./gradlew assembleRelease
-          ./gradlew bundleRelease
-          echo "✅ All builds completed"
-
-      - name: Upload Android Files
+          echo "✅ Build complete"
+      
+      # Step 5: Find and upload APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Android-Builds
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+          name: Mango-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
-
-  final-output:
-    runs-on: ubuntu-latest
-    needs: [android-build]
-    steps:
-      - name: Download Android Files
-        uses: actions/download-artifact@v4
-        with:
-          name: Android-Builds
-
-      - name: Create Final Package
-        run: |
-          mkdir -p Final-Package
-          cp -r * Final-Package/ 2>/dev/null || true
-          
-          echo "🎉 BUILD SUCCESSFUL!" > Final-Package/README.txt
-          echo "App: ${{ github.event.inputs.app_name }}" >> Final-Package/README.txt
-          echo "Package: ${{ github.event.inputs.package_name }}" >> Final-Package/README.txt
-          echo "" >> Final-Package/README.txt
-          echo "📱 FILES INCLUDED:" >> Final-Package/README.txt
-          echo "1. app-debug.apk - Testing" >> Final-Package/README.txt
-          echo "2. app-release.apk - Direct Install" >> Final-Package/README.txt
-          echo "3. app-release.aab - Play Store" >> Final-Package/README.txt
-
-      - name: Upload Final Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.event.inputs.app_name }}-Build
-          path: Final-Package/*
