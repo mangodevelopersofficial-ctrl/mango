@@ -33,7 +33,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Force Repair Gradlew
+      - name: Force Repair Gradlew (Fix Version 8.0)
         run: |
           rm -f gradlew
           rm -rf gradle/
@@ -41,8 +41,8 @@ jobs:
           chmod +x gradlew
 
       - name: Build APK
-        # Humne yahan --stacktrace aur --info add kiya hai takay error detail mein dikhayi de
-        run: ./gradlew clean assembleDebug --no-daemon --stacktrace --info
+        # Clean aur stacktrace ke sath taake koi purani file masla na kare
+        run: ./gradlew clean assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         if: success()
