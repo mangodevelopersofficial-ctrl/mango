@@ -1,5 +1,57 @@
-- name: Make gradlew executable
-        run: chmod +x gradlew
+name: Mango Ultimate Engine Final
 
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug --no-daemon
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'App Name'
+        required: true
+        default: 'Mango App'
+      package_name:
+        description: 'Package Name'
+        required: true
+        default: 'com.mango.app'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Fix and Generate Wrapper
+        # Ye step aapki khali gradlew aur missing jar file ka masla khatam kar dega
+        run: |
+          gradle wrapper --gradle-version 8.0
+          chmod +x gradlew
+
+      - name: Update App Details
+        run: |
+          # Update App Name in strings.xml
+          STRINGS_PATH="app/src/main/res/values/strings.xml"
+          if [ -f "$STRINGS_PATH" ]; then
+            sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $STRINGS_PATH
+          fi
+          
+          # Update Package Name in build.gradle
+          sed -i "s/applicationId \".*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
+
+      - name: Build APK and AAB
+        # Ye asli build command hai jo 3-5 minutes legi
+        run: ./gradlew assembleDebug bundleDebug --no-daemon --stacktrace
+
+      - name: Upload Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mango-Release-Files
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/debug/*.aab
