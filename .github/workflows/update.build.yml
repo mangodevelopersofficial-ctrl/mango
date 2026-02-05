@@ -5,10 +5,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Purana v3 hata kar v4 kar diya
+      - uses: actions/checkout@v4 # Updated to v4
 
       - name: set up JDK 17
-        uses: actions/setup-java@v4 # Purana v3 hata kar v4 kar diya
+        uses: actions/setup-java@v4 # Updated to v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -23,7 +23,7 @@ jobs:
         run: ./gradlew bundleRelease
 
       - name: Upload Results
-        uses: actions/upload-artifact@v4 # Ye asli fix hai, v3 ab nahi chale ga
+        uses: actions/upload-artifact@v4 # Ye asli fix hai (v4)
         with:
           name: Mango-Release-Apps
           path: |
