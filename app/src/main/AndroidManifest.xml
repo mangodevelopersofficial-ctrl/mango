@@ -35,6 +35,11 @@
     
     
     
+    <!-- Auto-generated permissions -->
+    
+    
+    
+    
     package="com.mango.app">
 
     <!-- Internet Permission (Must) -->
