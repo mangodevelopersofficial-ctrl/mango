@@ -1,16 +1,24 @@
-name: Mango Ultimate Engine Final
+name: Mango Ultimate Engine V2
 
 on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: 'App Name'
+        description: 'Apni App Ka Naam Likhen'
         required: true
         default: 'Mango App'
       package_name:
-        description: 'Package Name'
+        description: 'Package ID (e.g. com.mango.app)'
         required: true
         default: 'com.mango.app'
+      web_url:
+        description: 'Web URL'
+        required: false
+        default: 'https://google.com'
+      splash_time:
+        description: 'Splash Screen Time (ms)'
+        required: false
+        default: '3000'
 
 jobs:
   build:
@@ -26,32 +34,22 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Fix and Generate Wrapper
-        # Ye step aapki khali gradlew aur missing jar file ka masla khatam kar dega
+      - name: Repair Gradle Files
+        # Yeh step khali gradlew file aur missing jar file ko force fix karega
         run: |
+          rm -f gradlew
           gradle wrapper --gradle-version 8.0
           chmod +x gradlew
 
-      - name: Update App Details
-        run: |
-          # Update App Name in strings.xml
-          STRINGS_PATH="app/src/main/res/values/strings.xml"
-          if [ -f "$STRINGS_PATH" ]; then
-            sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $STRINGS_PATH
-          fi
-          
-          # Update Package Name in build.gradle
-          sed -i "s/applicationId \".*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
-
       - name: Build APK and AAB
-        # Ye asli build command hai jo 3-5 minutes legi
+        # Is step par aapko asli progress dikhegi (3-5 mins)
         run: ./gradlew assembleDebug bundleDebug --no-daemon --stacktrace
 
-      - name: Upload Artifacts
+      - name: Upload Files
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Release-Files
+          name: Mango-Release-Package
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/bundle/debug/*.aab
