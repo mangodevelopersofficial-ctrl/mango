@@ -25,8 +25,12 @@ jobs:
       
       - name: Update App Name
         run: |
-          # Update strings.xml with new app name
-          sed -i 's/<string name="app_name">.*<\/string>/<string name="app_name">${{ github.event.inputs.app_name }}<\/string>/g' app/src/main/res/values/strings.xml
+          # Create strings.xml if not exists
+          mkdir -p app/src/main/res/values/
+          echo '<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">'"${{ github.event.inputs.app_name }}"'</string>
+</resources>' > app/src/main/res/values/strings.xml
       
       - name: Build APK
         run: |
