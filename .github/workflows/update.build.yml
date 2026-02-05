@@ -1,4 +1,4 @@
-name: Mango APK Builder
+name: Simple APK Builder
 
 on:
   workflow_dispatch:
@@ -23,16 +23,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
       
-      - name: Update App Name
-        run: |
-          # Create strings.xml if not exists
-          mkdir -p app/src/main/res/values/
-          echo '<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">'"${{ github.event.inputs.app_name }}"'</string>
-</resources>' > app/src/main/res/values/strings.xml
-      
-      - name: Build APK
+      - name: Build APK (No Strings.xml Update)
         run: |
           ./gradlew clean
           ./gradlew assembleDebug
@@ -40,5 +31,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-App-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: APK-File
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
