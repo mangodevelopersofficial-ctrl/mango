@@ -34,10 +34,18 @@ jobs:
           distribution: 'temurin'
 
       - name: Repair Gradlew
-        # Yeh step aapki gradlew file ko automatically theek kar dega
+        # Yeh step Screenshot_21 ke mutabiq gradle wrapper ko sahi karega
         run: |
           gradle wrapper --gradle-version 8.0
           chmod +x gradlew
 
-      - name: Run Build
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build APK
+        # Humne 'clean' add kiya hai taake repositories ka conflict na aaye
+        run: ./gradlew clean assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mango-Final-APK
+          path: app/build/outputs/apk/debug/*.apk
