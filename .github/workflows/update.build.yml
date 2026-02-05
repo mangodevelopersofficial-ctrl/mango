@@ -1,41 +1,13 @@
-name: Mango APK Builder
+# TEST VERSION (Sabse simple)
+name: Test Build
 on: [workflow_dispatch]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Code download
       - uses: actions/checkout@v4
-      
-      # Step 2: Java setup
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-      
-      # Step 3: Fix permissions
-      - name: Make gradlew executable
-        run: |
-          if [ -f "gradlew" ]; then
-            chmod +x gradlew
-            echo "✅ gradlew ready"
-          else
-            echo "❌ gradlew missing"
-            exit 1
-          fi
-      
-      # Step 4: Build ONLY DEBUG APK
-      - name: Build Debug APK
-        run: |
-          ./gradlew clean
-          ./gradlew assembleDebug
-          echo "✅ Build complete"
-      
-      # Step 5: Find and upload APK
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mango-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: warn
+      - run: ls -la
+      - run: chmod +x gradlew
+      - run: ./gradlew assembleDebug
+      - run: find . -name "*.apk"
