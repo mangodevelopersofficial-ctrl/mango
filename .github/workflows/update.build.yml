@@ -24,22 +24,21 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # Cache ko false kar rahe hain taake 9.3 ki koi file bachi na rahe
-          cache: 'gradle'
 
-      - name: Clean and Force Gradle 8.0
-        # Hum server ko majboor karenge ke woh properties file wala version hi download kare
-        run: |
-          chmod +x gradlew
-          ./gradlew --version
-          
+      - name: Force Setup Gradle 8.0
+        # Yeh action server ko 9.3 se rok kar 8.0 par lock kar dega
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.0'
+
       - name: Build APK
-        # Clean build command conflict khatam karne ke liye
-        run: ./gradlew clean assembleDebug --no-daemon --stacktrace
+        # Ab hum 'gradle' command use karenge na ke './gradlew'
+        # Kyunke setup-gradle ne version 8.0 ko PATH mein save kar diya hai
+        run: gradle clean assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Release-APK
+          name: Mango-Final-APK
           path: app/build/outputs/apk/debug/*.apk
