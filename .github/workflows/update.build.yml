@@ -11,15 +11,7 @@ on:
       package_name:
         description: 'Package Name'
         required: true
-        type: string
-      web_url:
-        description: 'Website URL'
-        required: true
-        type: string
-      splash_time:
-        description: 'Splash Screen Time'
-        required: true
-        default: '3000'
+        default: 'com.mango.app'
         type: string
 
 jobs:
@@ -34,31 +26,29 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # Cache ko filhal remove kiya hai error se bachne ke liye
-          
-      - name: Make gradlew executable
-        run: chmod +x gradlew
+
+      - name: Force Generate Gradle Wrapper
+        # Agar aapki repo mein gradlew khali hai, toh ye step usey install karega
+        run: |
+          gradle wrapper --gradle-version 8.0
+          chmod +x gradlew
 
       - name: Update App Details
         run: |
-          # Update App Name
+          # App Name Update
           STRINGS_PATH="app/src/main/res/values/strings.xml"
           if [ -f "$STRINGS_PATH" ]; then
             sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $STRINGS_PATH
           fi
           
-          # Update Package Name in build.gradle (optional but recommended)
+          # Package Name Update (build.gradle mein)
           sed -i "s/applicationId \".*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
 
-      - name: Clean and Build APK & AAB
-        # --no-daemon use karne se CI environment mein reliability badhti hai
-        run: ./gradlew clean assembleDebug bundleDebug --no-daemon
+      - name: Build APK and AAB
+        # --no-daemon CI environments mein zyada stable hota hai
+        run: ./gradlew assembleDebug bundleDebug --no-daemon
 
-      - name: Check Output Folders
-        # Yeh step sirf debugging ke liye hai taake logs mein dikhe files kahan hain
-        run: find app/build/outputs/ -type f
-
-      - name: Upload APK & AAB
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Mango-Builds
