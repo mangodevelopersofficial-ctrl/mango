@@ -1,4 +1,4 @@
-name: Mango Ultimate Engine Final
+name: Mango Ultimate Engine - Auto Fix
 
 on:
   workflow_dispatch:
@@ -20,31 +20,22 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Update App Name
+      - name: Install Gradle and Fix Wrapper
+        # Yeh step aapki khali files ko sahi files se replace kar dega
         run: |
-          # Screenshot 11 ke 'No such file' error ko fix karne ke liye check
-          FILE_PATH="app/src/main/res/values/strings.xml"
-          if [ -f "$FILE_PATH" ]; then
-            sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $FILE_PATH
-          else
-            echo "Error: strings.xml not found at $FILE_PATH"
-            exit 1
-          fi
+          sudo apt-get update
+          sudo apt-get install -y gradle
+          gradle wrapper --gradle-version 8.0
+          chmod +x gradlew
 
-      - name: Build APK and AAB
-        # assembleDebug APK ke liye aur bundleDebug AAB ke liye
+      - name: Build APK & AAB
         run: ./gradlew assembleDebug bundleDebug --no-daemon
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Build-Outputs
+          name: Mango-Builds
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/bundle/debug/*.aab
-          if-no-files-found: error
