@@ -27,32 +27,34 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Force Generate Gradle Wrapper
-        # Agar aapki repo mein gradlew khali hai, toh ye step usey install karega
+      - name: Install Gradle & Generate Wrapper
+        # Sudo ke saath gradle install karke wrapper banayenge
         run: |
+          sudo apt-get update
+          sudo apt-get install -y gradle
           gradle wrapper --gradle-version 8.0
           chmod +x gradlew
 
-      - name: Update App Details
+      - name: Update App Name & Package
         run: |
-          # App Name Update
+          # Update App Name
           STRINGS_PATH="app/src/main/res/values/strings.xml"
           if [ -f "$STRINGS_PATH" ]; then
             sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $STRINGS_PATH
           fi
           
-          # Package Name Update (build.gradle mein)
-          sed -i "s/applicationId \".*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
+          # Update Package Name
+          if [ -f "app/build.gradle" ]; then
+            sed -i "s/applicationId \".*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
+          fi
 
-      - name: Build APK and AAB
-        # --no-daemon CI environments mein zyada stable hota hai
-        run: ./gradlew assembleDebug bundleDebug --no-daemon
+      - name: Build with Gradle
+        # --stacktrace aur --info se exact error dikhega
+        run: ./gradlew assembleDebug bundleDebug --no-daemon --stacktrace --info
 
       - name: Upload Artifacts
+        if: always() # Taake fail hone par bhi hum logs dekh saken
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Builds
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/bundle/debug/*.aab
-          if-no-files-found: error
+          name: Mango-Build-Logs
+          path: app/build/outputs/
