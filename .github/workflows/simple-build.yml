@@ -1,4 +1,4 @@
-name: Complete APK Builder
+name: Simple APK Builder
 
 on:
   workflow_dispatch:
@@ -11,6 +11,11 @@ on:
         description: 'Package Name'
         required: false
         default: 'com.mango.app'
+        type: string
+      permissions:
+        description: 'Permissions'
+        required: false
+        default: ''
         type: string
 
 jobs:
@@ -28,25 +33,6 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
       
-      - name: Create Required Files
-        run: |
-          # Create res folder
-          mkdir -p app/src/main/res/values/
-          
-          # Create strings.xml
-          echo '<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">'"${{ github.event.inputs.app_name }}"'</string>
-</resources>' > app/src/main/res/values/strings.xml
-          
-          # Create styles.xml
-          echo '<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <item name="colorPrimary">#FF6200EE</item>
-    </style>
-</resources>' > app/src/main/res/values/styles.xml
-      
       - name: Build APK
         run: |
           ./gradlew clean
@@ -55,5 +41,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-App
+          name: Mango-APK
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
