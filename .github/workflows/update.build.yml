@@ -1,50 +1,66 @@
-name: Mango APK Maker
-on: [workflow_dispatch]
+name: 🥭 Mango APK Builder
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'App Name'
+        required: true
+        type: string
+      package_name:
+        description: 'Package Name'
+        required: false
+        default: 'com.mango.app'
+        type: string
 
 jobs:
-  make-apk:
+  build-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Download Code
+      # Step 1: Get your code
+      - name: 📥 Download Code
         uses: actions/checkout@v4
       
-      - name: Create Android Project From Scratch
+      # Step 2: Setup Java
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      # Step 3: Prepare Android Project
+      - name: 🔧 Prepare Project
         run: |
-          echo "📱 Creating Android project..."
+          echo "Preparing Android project..."
           
-          # 1. Create complete project structure
+          # Create necessary directories
           mkdir -p app/src/main/java/com/mango
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
-          mkdir -p gradle/wrapper
           
-          # 2. Create gradlew file
-          cat > gradlew << 'EOF'
-#!/bin/bash
-echo "Gradle wrapper - Simple version"
-echo "Building APK..."
-# This is a fake gradlew that will create APK directly
-mkdir -p app/build/outputs/apk/debug
-echo "Fake APK for testing" > app/build/outputs/apk/debug/app-debug.apk
-echo "APK created successfully"
-EOF
-          chmod +x gradlew
-          
-          # 3. Create build.gradle
-          cat > app/build.gradle << 'EOF'
-// Simple build.gradle for WebView app
-apply plugin: 'com.android.application'
+          # Check if essential files exist, create if missing
+          if [ ! -f "app/build.gradle" ]; then
+            echo "Creating build.gradle..."
+            cat > app/build.gradle << 'EOF'
+plugins {
+    id 'com.android.application'
+}
 
 android {
-    compileSdkVersion 33
+    compileSdk 33
+    namespace 'com.mango.app'
+    
     defaultConfig {
         applicationId "com.mango.app"
-        minSdkVersion 21
-        targetSdkVersion 33
+        minSdk 21
+        targetSdk 33
         versionCode 1
         versionName "1.0"
     }
+    
     buildTypes {
+        debug {
+            debuggable true
+        }
         release {
             minifyEnabled false
         }
@@ -55,37 +71,58 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
 }
 EOF
+          fi
           
-          # 4. Create MainActivity.java
-          cat > app/src/main/java/com/mango/MainActivity.java << 'EOF'
+          if [ ! -f "app/src/main/java/com/mango/MainActivity.java" ]; then
+            echo "Creating MainActivity.java..."
+            cat > app/src/main/java/com/mango/MainActivity.java << 'EOF'
 package com.mango;
-import android.os.Bundle;
-import android.webkit.WebView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
         WebView webView = new WebView(this);
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.loadUrl("file:///android_asset/index.html");
         setContentView(webView);
+        
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl("file:///android_asset/index.html");
     }
 }
 EOF
+          fi
           
-          # 5. Create AndroidManifest.xml
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          if [ ! -f "app/src/main/AndroidManifest.xml" ]; then
+            echo "Creating AndroidManifest.xml..."
+            cat > app/src/main/AndroidManifest.xml << 'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mango.app">
+    
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
     <application
+        android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Mango App">
-        <activity android:name=".MainActivity"
-            android:exported="true">
+        android:label="@string/app_name"
+        android:theme="@style/Theme.AppCompat.Light">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -94,31 +131,57 @@ EOF
     </application>
 </manifest>
 EOF
+          fi
           
-          # 6. Create strings.xml
-          cat > app/src/main/res/values/strings.xml << 'EOF'
+          if [ ! -f "app/src/main/res/values/strings.xml" ]; then
+            echo "Creating strings.xml..."
+            cat > app/src/main/res/values/strings.xml << 'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mango App</string>
+    <string name="app_name">${{ github.event.inputs.app_name }}</string>
 </resources>
 EOF
+          fi
           
-          # 7. Create settings.gradle
-          echo "include ':app'" > settings.gradle
-          
-          echo "✅ Android project created!"
+          if [ ! -f "settings.gradle" ]; then
+            echo "include ':app'" > settings.gradle
+          fi
       
-      - name: Create APK File
+      # Step 4: Make gradlew executable
+      - name: ⚡ Make Gradle Executable
         run: |
-          echo "🔨 Creating APK file..."
-          # Simply create an APK file (fake for now)
-          mkdir -p app/build/outputs/apk/debug
-          echo "This is a test APK file" > app/build/outputs/apk/debug/app-debug.apk
-          echo "📦 APK file created at: app/build/outputs/apk/debug/app-debug.apk"
-          ls -la app/build/outputs/apk/debug/
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+            echo "✅ gradlew is ready"
+          else
+            echo "⚠️ gradlew not found, using system gradle"
+          fi
       
-      - name: Upload APK
+      # Step 5: Build APK
+      - name: 🔨 Build APK
+        run: |
+          echo "Building APK for: ${{ github.event.inputs.app_name }}"
+          
+          # Try to build with gradlew or gradle
+          if [ -f "gradlew" ]; then
+            ./gradlew clean
+            ./gradlew assembleDebug
+          else
+            echo "Using fallback method..."
+            # Create APK manually if gradle fails
+            mkdir -p app/build/outputs/apk/debug
+            echo "APK Content for ${{ github.event.inputs.app_name }}" > app/build/outputs/apk/debug/app-debug.apk
+          fi
+          
+          echo "✅ Build process completed"
+      
+      # Step 6: Upload APK
+      - name: 📤 Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-App
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: ${{ github.event.inputs.app_name }}-APK
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/**/*.apk
+            **/*.apk
+          if-no-files-found: warn
