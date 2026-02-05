@@ -9,7 +9,7 @@ on:
         default: 'Mango App'
         type: string
       package_name:
-        description: 'Package Name (e.g., com.mango.app)'
+        description: 'Package Name'
         required: true
         type: string
       web_url:
@@ -17,7 +17,7 @@ on:
         required: true
         type: string
       splash_time:
-        description: 'Splash Screen Time (ms)'
+        description: 'Splash Screen Time'
         required: true
         default: '3000'
         type: string
@@ -34,30 +34,35 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
-
+          # Cache ko filhal remove kiya hai error se bachne ke liye
+          
       - name: Make gradlew executable
         run: chmod +x gradlew
 
       - name: Update App Details
         run: |
-          # Strings.xml update (App Name)
+          # Update App Name
           STRINGS_PATH="app/src/main/res/values/strings.xml"
           if [ -f "$STRINGS_PATH" ]; then
-            sed -i 's/name="app_name">.*<\/string>/name="app_name">${{ github.event.inputs.app_name }}<\/string>/g' $STRINGS_PATH
+            sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $STRINGS_PATH
           fi
+          
+          # Update Package Name in build.gradle (optional but recommended)
+          sed -i "s/applicationId \".*\"/applicationId \"${{ github.event.inputs.package_name }}\"/g" app/build.gradle
 
-          # Yahan aap apne code ke mutabiq package_name aur web_url ko replace karne ki logic add kar sakte hain
-          echo "Building for Package: ${{ github.event.inputs.package_name }}"
-          echo "URL: ${{ github.event.inputs.web_url }}"
+      - name: Clean and Build APK & AAB
+        # --no-daemon use karne se CI environment mein reliability badhti hai
+        run: ./gradlew clean assembleDebug bundleDebug --no-daemon
 
-      - name: Build APK and AAB
-        run: ./gradlew assembleDebug bundleDebug
+      - name: Check Output Folders
+        # Yeh step sirf debugging ke liye hai taake logs mein dikhe files kahan hain
+        run: find app/build/outputs/ -type f
 
-      - name: Upload Artifacts
+      - name: Upload APK & AAB
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Build-Outputs
+          name: Mango-Builds
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/bundle/debug/*.aab
+          if-no-files-found: error
