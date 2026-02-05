@@ -5,11 +5,11 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+        // Android Gradle Plugin version jo 8.0 Gradle ke liye sahi hai
         classpath 'com.android.tools.build:gradle:8.0.2'
     }
 }
 
 plugins {
     id 'com.android.application' version '8.0.2' apply false
-    id 'com.android.library' version '8.0.2' apply false
 }
