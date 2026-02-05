@@ -1,4 +1,4 @@
-name: Mango Ultimate Engine - Auto Fix
+name: Mango Ultimate Engine Final
 
 on:
   workflow_dispatch:
@@ -7,6 +7,16 @@ on:
         description: 'App Name'
         required: true
         default: 'Mango App'
+      # Yeh inputs niche add kar diye taake "Unexpected Input" error khatam ho jaye
+      package_name:
+        description: 'Package Name'
+        required: false
+      web_url:
+        description: 'Web URL'
+        required: false
+      splash_time:
+        description: 'Splash Time'
+        required: false
 
 jobs:
   build:
@@ -20,22 +30,30 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Install Gradle and Fix Wrapper
-        # Yeh step aapki khali files ko sahi files se replace kar dega
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Update App Name
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle
-          gradle wrapper --gradle-version 8.0
-          chmod +x gradlew
+          FILE_PATH="app/src/main/res/values/strings.xml"
+          if [ -f "$FILE_PATH" ]; then
+            sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $FILE_PATH
+          else
+            echo "Error: strings.xml not found!"
+            exit 1
+          fi
 
-      - name: Build APK & AAB
+      - name: Build APK and AAB
+        # Yeh asli build command hai
         run: ./gradlew assembleDebug bundleDebug --no-daemon
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Builds
+          name: Mango-Build-Outputs
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/bundle/debug/*.aab
+          if-no-files-found: error
