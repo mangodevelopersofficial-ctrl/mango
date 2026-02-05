@@ -8,6 +8,19 @@ on:
         required: true
         default: 'Mango App'
         type: string
+      package_name:
+        description: 'Package Name (e.g., com.mango.app)'
+        required: true
+        type: string
+      web_url:
+        description: 'Website URL'
+        required: true
+        type: string
+      splash_time:
+        description: 'Splash Screen Time (ms)'
+        required: true
+        default: '3000'
+        type: string
 
 jobs:
   build:
@@ -17,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup JDK 17
-        uses: actions/checkout@v4
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -26,28 +39,25 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Update App Name
+      - name: Update App Details
         run: |
-          # Is line mein hum ensure kar rahe hain ke path sahi ho
-          FILE_PATH="app/src/main/res/values/strings.xml"
-          if [ -f "$FILE_PATH" ]; then
-            sed -i 's/name="app_name">.*<\/string>/name="app_name">${{ github.event.inputs.app_name }}<\/string>/g' $FILE_PATH
-          else
-            echo "Error: strings.xml not found at $FILE_PATH"
-            exit 1
+          # Strings.xml update (App Name)
+          STRINGS_PATH="app/src/main/res/values/strings.xml"
+          if [ -f "$STRINGS_PATH" ]; then
+            sed -i 's/name="app_name">.*<\/string>/name="app_name">${{ github.event.inputs.app_name }}<\/string>/g' $STRINGS_PATH
           fi
+
+          # Yahan aap apne code ke mutabiq package_name aur web_url ko replace karne ki logic add kar sakte hain
+          echo "Building for Package: ${{ github.event.inputs.package_name }}"
+          echo "URL: ${{ github.event.inputs.web_url }}"
 
       - name: Build APK and AAB
         run: ./gradlew assembleDebug bundleDebug
 
-      - name: Upload APK
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-APK
-          path: app/build/outputs/apk/debug/*.apk
-
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mango-Bundle
-          path: app/build/outputs/bundle/debug/*.aab
+          name: Mango-Build-Outputs
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/debug/*.aab
