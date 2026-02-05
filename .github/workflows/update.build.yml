@@ -1,52 +1,31 @@
-name: Mango Universal Fixer
-
-on:
-  workflow_dispatch:
-    inputs:
-      app_name:
-        required: true
-        default: 'MangoApp'
-      package_name:
-        required: true
-        default: 'com.mango.app'
-      web_url:
-        default: 'none'
-      splash_time:
-        default: '3000'
+name: Mango Native Android Builder
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: set up JDK 17
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Grant Permissions
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        # Hum pehle Debug APK banayenge kyunki isme signing ka masla nahi hota
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+      - name: Build APK (Release)
+        run: ./gradlew assembleRelease
 
-      - name: Prepare Artifacts
-        if: always()
-        run: |
-          mkdir -p final_files
-          # Ye command poore system mein jahan bhi .apk hai usay dhoond legi
-          find . -name "*.apk" -exec cp {} final_files/ \;
-          
-          # Agar koi file mili toh list karega warna error dikhayega
-          ls -R final_files/
+      - name: Build AAB (Bundle)
+        run: ./gradlew bundleRelease
 
-      - name: Upload Build
-        uses: actions/upload-artifact@v4
+      - name: Upload Results
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.event.inputs.app_name }}-APK
-          path: final_files/
-          if-no-files-found: error
+          name: Mango-Release-Apps
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
