@@ -1,4 +1,4 @@
-name: Mango Ultimate Builder
+name: Mango APK Builder
 
 on:
   workflow_dispatch:
@@ -6,11 +6,6 @@ on:
       app_name:
         description: 'App Name'
         required: true
-        type: string
-      package_name:
-        description: 'Package Name'
-        required: false
-        default: 'com.mango.app'
         type: string
 
 jobs:
@@ -28,11 +23,15 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
       
+      - name: Update App Name
+        run: |
+          # Update strings.xml with new app name
+          sed -i 's/<string name="app_name">.*<\/string>/<string name="app_name">${{ github.event.inputs.app_name }}<\/string>/g' app/src/main/res/values/strings.xml
+      
       - name: Build APK
         run: |
           ./gradlew clean
           ./gradlew assembleDebug
-          echo "✅ Build completed!"
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
