@@ -12,21 +12,6 @@ on:
         required: false
         default: 'com.mango.app'
         type: string
-      web_url:
-        description: 'Web URL'
-        required: false
-        default: 'none'
-        type: string
-      splash_time:
-        description: 'Splash Time'
-        required: false
-        default: '3000'
-        type: string
-      permissions:
-        description: 'Permissions List'
-        required: false
-        default: ''
-        type: string
 
 jobs:
   build:
@@ -43,34 +28,14 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
       
-      - name: Update App Details
-        run: |
-          # Update app name in strings.xml
-          sed -i "s/Mango WebView/${{ github.event.inputs.app_name }}/g" app/src/main/res/values/strings.xml
-          
-          # Update package name if provided
-          if [ "${{ github.event.inputs.package_name }}" != "com.mango.app" ]; then
-            echo "Updating package to ${{ github.event.inputs.package_name }}"
-          fi
-      
-      - name: Build Debug APK
+      - name: Build APK
         run: |
           ./gradlew clean
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
+          echo "✅ Build completed!"
       
-      - name: Find APK Files
-        run: |
-          echo "🔍 Looking for APK files..."
-          find . -name "*.apk" -type f | while read file; do
-            echo "Found: $file"
-          done
-          ls -la app/build/outputs/apk/ || true
-      
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Mango-App-APK
-          path: |
-            app/build/outputs/apk/**/*.apk
-            **/*.apk
-          if-no-files-found: warn
+          path: app/build/outputs/apk/debug/*.apk
