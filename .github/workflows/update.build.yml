@@ -11,7 +11,6 @@ on:
         description: 'Package ID'
         required: true
         default: 'com.mango.app'
-      # Yeh do inputs wapas add kar diye taake error khatam ho jaye
       web_url:
         description: 'Web URL'
         required: false
@@ -34,22 +33,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Force Repair Structure
-        # Yeh step aapki khali gradlew file ko server par sahi karega
+      - name: Repair Gradlew
+        # Yeh step aapki gradlew file ko automatically theek kar dega
         run: |
-          rm -f gradlew
           gradle wrapper --gradle-version 8.0
           chmod +x gradlew
 
-      - name: Build APK and AAB
-        # Yeh step ab asli build shuru karega
-        run: ./gradlew assembleDebug bundleDebug --no-daemon --stacktrace
-
-      - name: Upload Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mango-Build-Output
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/bundle/debug/*.aab
+      - name: Run Build
+        run: ./gradlew assembleDebug --no-daemon
