@@ -7,16 +7,6 @@ on:
         description: 'App Name'
         required: true
         default: 'Mango App'
-      # Yeh inputs niche add kar diye taake "Unexpected Input" error khatam ho jaye
-      package_name:
-        description: 'Package Name'
-        required: false
-      web_url:
-        description: 'Web URL'
-        required: false
-      splash_time:
-        description: 'Splash Time'
-        required: false
 
 jobs:
   build:
@@ -37,16 +27,17 @@ jobs:
 
       - name: Update App Name
         run: |
+          # Screenshot 11 ke 'No such file' error ko fix karne ke liye check
           FILE_PATH="app/src/main/res/values/strings.xml"
           if [ -f "$FILE_PATH" ]; then
             sed -i "s/name=\"app_name\">.*<\/string>/name=\"app_name\">${{ github.event.inputs.app_name }}<\/string>/g" $FILE_PATH
           else
-            echo "Error: strings.xml not found!"
+            echo "Error: strings.xml not found at $FILE_PATH"
             exit 1
           fi
 
       - name: Build APK and AAB
-        # Yeh asli build command hai
+        # assembleDebug APK ke liye aur bundleDebug AAB ke liye
         run: ./gradlew assembleDebug bundleDebug --no-daemon
 
       - name: Upload Artifacts
