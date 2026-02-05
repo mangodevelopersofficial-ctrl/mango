@@ -1,13 +1,47 @@
-# TEST VERSION (Sabse simple)
-name: Test Build
+name: Check Repository
 on: [workflow_dispatch]
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: ls -la
-      - run: chmod +x gradlew
-      - run: ./gradlew assembleDebug
-      - run: find . -name "*.apk"
+      
+      - name: Show Everything
+        run: |
+          echo "=== COMPLETE STRUCTURE ==="
+          find . -type f -name "*.gradle" -o -name "*.java" -o -name "*.xml" | sort
+          
+          echo ""
+          echo "=== TOP LEVEL ==="
+          ls -la
+          
+          echo ""
+          echo "=== APP FOLDER ==="
+          ls -la app/ 2>/dev/null || echo "NO APP FOLDER"
+          
+          echo ""
+          echo "=== GRADLEW ==="
+          if [ -f "gradlew" ]; then
+            echo "✅ gradlew exists"
+            ls -la gradlew
+            head -5 gradlew
+          else
+            echo "❌ gradlew NOT FOUND"
+          fi
+          
+          echo ""
+          echo "=== BUILD.GRADLE ==="
+          if [ -f "app/build.gradle" ]; then
+            echo "✅ app/build.gradle exists"
+            cat app/build.gradle
+          else
+            echo "❌ app/build.gradle NOT FOUND"
+          fi
+          
+          echo ""
+          echo "=== MAINACTIVITY ==="
+          find . -name "MainActivity.java" -type f 2>/dev/null | while read file; do
+            echo "Found: $file"
+            head -10 "$file"
+          done || echo "No MainActivity.java"
