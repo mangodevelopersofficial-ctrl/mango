@@ -1,43 +1,16 @@
-plugins {
-    id 'com.android.application'
-}
-
 android {
-    namespace 'com.mango'
-    compileSdk 34
-
-    defaultConfig {
-        applicationId "com.mango.app"
-        minSdk 21
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    buildTypes {
+    signingConfigs {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            
-            // Ye line sabse ahem hai, iske baghair APK folder nahi banta
-            signingConfig signingConfigs.debug 
+            storeFile file(RELEASE_STORE_FILE)
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
         }
     }
-
-    aaptOptions {
-        noCompress 'png'
-    }
     
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
     }
-}
-
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.webkit:webkit:1.9.0'
 }
