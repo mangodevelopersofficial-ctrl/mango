@@ -6,7 +6,6 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    // Mode ko badal kar 'PREFER_SETTINGS' kar diya taake conflict khatam ho jaye
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
