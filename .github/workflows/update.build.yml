@@ -33,19 +33,21 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Repair Gradlew
-        # Yeh step Screenshot_21 ke mutabiq gradle wrapper ko sahi karega
+      - name: Force Repair Gradlew
+        # Hum purani files delete karke bilkul fresh wrapper banayenge
         run: |
+          rm -f gradlew
+          rm -rf gradle/
           gradle wrapper --gradle-version 8.0
           chmod +x gradlew
 
       - name: Build APK
-        # Humne 'clean' add kiya hai taake repositories ka conflict na aaye
+        # Clean aur stacktrace errors ko pakadne ke liye zaroori hain
         run: ./gradlew clean assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Mango-Final-APK
+          name: Mango-Release-Package
           path: app/build/outputs/apk/debug/*.apk
